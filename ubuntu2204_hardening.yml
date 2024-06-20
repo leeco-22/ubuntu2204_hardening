@@ -1,0 +1,68 @@
+- hosts: all
+  become: yes
+  vars:
+    proxy_env:
+      http_proxy: "http://{{ proxy }}:{{ proxy_port }}"
+      https_proxy: "http://{{ proxy }}:{{ proxy_port }}"
+    max_audit_log_file_count: 10
+
+  vars_files:
+    - vars/ubuntu22_cis_vars.yml
+    - vars/ubuntu22_cis_section1.yml
+    - vars/ubuntu22_cis_section2.yml
+    - vars/ubuntu22_cis_section3.yml
+    - vars/ubuntu22_cis_section4.yml
+    - vars/ubuntu22_cis_section5.yml
+    - vars/ubuntu22_cis_section6.yml
+
+  roles:
+    - name: Ubuntu2204-CIS
+      environment: "{{ proxy_env }}"
+
+  tasks:
+    - name: create motd
+      copy:
+        content: "CAMBODIA POST BANK - AUTHORIZED USE ONLY\n"
+        dest: /etc/motd
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: create banner
+      copy:
+        content: "Authorized uses only. All activity may be monitored and reported.\n"
+        dest: /etc/issue
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: create issue.net
+      copy:
+        content: "Authorized uses only. All activity may be monitored and reported.\n"
+        dest: /etc/issue.net
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: "Set audit log file count"
+      lineinfile:
+        dest: /etc/audit/auditd.conf
+        regexp: "^num_logs"
+        line: "num_logs = {{ max_audit_log_file_count }}"
+        state: present
+        create: yes
+      when: Ubuntu2204cis_rule_4_1_2_2
+      notify:
+        - restart auditd
+      tags:
+        - level2
+        - scored
+        - patch
+        - auditd
+        - rule_4.1.2.2
+
+  handlers:
+    - name: restart auditd
+      service:
+        name: auditd
+        state: restarted
